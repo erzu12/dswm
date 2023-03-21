@@ -1,0 +1,6 @@
+2023-03-20 19:19:02 - INFO: ""
+2023-03-20 19:19:02 - INFO: screen count: GetScreenCountReply { response_type: 1, screen_count: 3, sequence: 31, length: 0, window: Window { res_id: 1751406112 } }
+2023-03-20 19:21:26 - INFO: ""
+2023-03-20 19:21:26 - INFO: screen count: 0
+2023-03-20 19:26:09 - INFO: ""
+2023-03-20 19:26:09 - INFO: screen query: QueryScreensReply { response_type: 1, pad: 1, sequence: 32, length: 6, number: 3, pad: 20, screen_info: [ScreenInfo { x_org: 3840, y_org: 0, width: 3840, height: 2160 }, ScreenInfo { x_org: 7680, y_org: 0, width: 3840, height: 2160 }, ScreenInfo { x_org: 0, y_org: 0, width: 3840, height: 2160 }] }

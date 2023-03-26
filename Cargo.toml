@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 log = "*"
 log4rs = "*"
-xcb = { version = "1.2.0", features = ["xinerama"] }
+xcb = { version = "1.2.0", features = ["xinerama", "randr"] }

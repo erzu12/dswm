@@ -7,6 +7,8 @@ use xcb::x::CURRENT_TIME;
 use xcb::{x, xinerama, Connection};
 use xcb::{Xid};
 
+use crate::WindowConfiguration;
+
 struct WmAtoms {
     wm_protocols: xcb::x::Atom,
     wm_delete_window: xcb::x::Atom,
@@ -42,15 +44,31 @@ impl NetAtoms {
 }
 
 pub struct Xmanager {
-    screen: x::ScreenBuf,
-    conn: xcb::Connection,
+    pub screen: x::ScreenBuf,
+    pub conn: xcb::Connection,
     wm_atoms: WmAtoms,
     net_atoms: NetAtoms,
 }
 
+impl WindowConfiguration for Xmanager {
+    fn set_window_configuration(&self, window: x::Window, x: i32, y: i32, width: u32, height: u32) {
+        let cookie = self.conn.send_request_checked(&x::ConfigureWindow {
+            window,
+            value_list: &[
+                x::ConfigWindow::X(x),
+                x::ConfigWindow::Y(y),
+                x::ConfigWindow::Width(width),
+                x::ConfigWindow::Height(height),
+            ],
+        });
+        self.check_request(cookie);
+    }
+
+}
+
 impl Xmanager {
     pub fn init() -> Self {
-        let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
+        let (conn, screen_num) = xcb::Connection::connect_with_extensions(None, &[xcb::Extension::RandR], &[]).unwrap();
 
         // Fetch the `x::Setup` and get the main `x::Screen` object.
         let setup = conn.get_setup();
@@ -93,17 +111,30 @@ impl Xmanager {
             process::exit(1);
         });
 
+        let cookie = this.conn.send_request_checked(&xcb::randr::SelectInput {
+            window: this.screen.root(),
+            enable: xcb::randr::NotifyMask::CRTC_CHANGE,
+        });
+        this.check_request(cookie);
+
         this
     }
 
-    fn map_window(&self, window: x::Window) {
+    pub fn map_window(&self, window: x::Window) {
         let cookie = self.conn.send_request_checked(&x::MapWindow {
             window,
         });
         self.check_request(cookie);
     }
 
-    fn focus_window(&self, window: x::Window) {
+    pub fn unmap_window(&self, window: x::Window) {
+        let cookie = self.conn.send_request_checked(&x::UnmapWindow {
+            window,
+        });
+        self.check_request(cookie);
+    }
+
+    pub fn focus_window(&self, window: x::Window) {
         let cookie = self.conn.send_request_checked(&x::SetInputFocus {
             revert_to: x::InputFocus::None,
             focus: window,
@@ -125,7 +156,7 @@ impl Xmanager {
 
     }
 
-    fn set_window_size(&self, window: x::Window, width: u32, height: u32) {
+    pub fn set_window_size(&self, window: x::Window, width: u32, height: u32) {
         let cookie = self.conn.send_request_checked(&x::ConfigureWindow {
             window,
             value_list: &[
@@ -136,25 +167,12 @@ impl Xmanager {
         self.check_request(cookie);
     }
 
-    fn set_window_pos(&self, window: x::Window, x: i32, y: i32) {
+    pub fn set_window_pos(&self, window: x::Window, x: i32, y: i32) {
         let cookie = self.conn.send_request_checked(&x::ConfigureWindow {
              window,
             value_list: &[
                 x::ConfigWindow::X(x),
                 x::ConfigWindow::Y(y),
-            ],
-        });
-        self.check_request(cookie);
-    }
-
-    fn set_window_configuration(&self, window: x::Window, width: u32, height: u32, x: i32, y: i32) {
-        let cookie = self.conn.send_request_checked(&x::ConfigureWindow {
-            window,
-            value_list: &[
-                x::ConfigWindow::X(x),
-                x::ConfigWindow::Y(y),
-                x::ConfigWindow::Width(width),
-                x::ConfigWindow::Height(height),
             ],
         });
         self.check_request(cookie);
@@ -175,7 +193,6 @@ impl Xmanager {
         });
         self.conn.flush().unwrap_or_else( |err| {
             error!("X error: {err}");
-            info!("this may be caused by another running window manager");
             process::exit(1);
         });
     }
@@ -230,7 +247,6 @@ impl Xmanager {
     fn check_request(&self, cookie: xcb::VoidCookieChecked) {
         self.conn.check_request(cookie).unwrap_or_else(|err| {
             error!("X error: {err}");
-            info!("this may be caused by another running window manager");
             process::exit(1);
         });
     }

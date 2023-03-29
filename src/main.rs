@@ -2,6 +2,7 @@ pub mod xmanager;
 pub mod client;
 pub mod monitor;
 pub mod layout;
+mod config;
 
 use std::process::{Command, self};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -10,10 +11,11 @@ use log::{debug, error, info, trace, warn};
 use log4rs;
 
 use xcb::x::CURRENT_TIME;
-use xcb::{x, xinerama, randr, Connection};
+use xcb::{x, randr, Connection};
 use xcb::{Xid};
 
 use crate::client::Client;
+use crate::config::Settings;
 use crate::monitor::Monitor;
 use crate::xmanager::Xmanager;
 
@@ -59,11 +61,22 @@ impl NetAtoms {
 fn main() -> xcb::Result<()> {
     log4rs::init_file("/media/ssd2/dev/dswm/logging_config.yaml", Default::default()).unwrap();
     info!("starting dswm");
+
+    let settings = Settings::new().unwrap_or_else(|err| {
+        error!("config parse error: {:?}", err);
+        process::exit(1);
+    });
+    println!("{:?}", settings);
+    
     
     let xmanager = Xmanager::init();
     let mut monitors = Monitor::creat_monitors(&xmanager);
 
     Command::new("alacritty").spawn();
+    Command::new("/home/jonas/.config/dswm/autorun.sh").spawn().unwrap_or_else(|err| {
+        info!("autorun err: {}", err);
+        process::exit(1);
+    });
 
 
     loop {
@@ -85,13 +98,20 @@ fn main() -> xcb::Result<()> {
                 monitors[0].unmap_window(&xmanager, ev.window());
 
             }
+            xcb::Event::X(x::Event::EnterNotify(ev)) => {
+                xmanager.focus_window(ev.event());
+                info!("enter: {:?}", ev);
+            }
+            xcb::Event::X(x::Event::KeyPress(ev)) => {
+                info!("key: {:?}", ev);
+            }
             xcb::Event::RandR(xcb::randr::Event::Notify(ev)) => match ev.u() {
                 randr::NotifyData::Cc(cc) => {
                     Monitor::handle_crtc_change(&mut monitors, cc);
                 }
                 _ => {}
             },
-            ev => { info!("other {:?}", ev); 
+            ev => { //info!("other {:?}", ev); 
             }
         }
     }

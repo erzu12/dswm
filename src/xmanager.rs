@@ -4,7 +4,7 @@ use log::{debug, error, info, trace, warn};
 use log4rs;
 
 use xcb::x::CURRENT_TIME;
-use xcb::{x, xinerama, Connection};
+use xcb::{x, Connection, xkb};
 use xcb::{Xid};
 
 use crate::WindowConfiguration;
@@ -68,7 +68,7 @@ impl WindowConfiguration for Xmanager {
 
 impl Xmanager {
     pub fn init() -> Self {
-        let (conn, screen_num) = xcb::Connection::connect_with_extensions(None, &[xcb::Extension::RandR], &[]).unwrap();
+        let (conn, screen_num) = xcb::Connection::connect_with_extensions(None, &[xcb::Extension::RandR, xcb::Extension::Xkb], &[]).unwrap();
 
         // Fetch the `x::Setup` and get the main `x::Screen` object.
         let setup = conn.get_setup();
@@ -103,7 +103,13 @@ impl Xmanager {
 
         let cookie = this.conn.send_request_checked(&x::ChangeWindowAttributes {
             window: this.screen.root(),
-            value_list: &[x::Cw::EventMask(x::EventMask::SUBSTRUCTURE_NOTIFY | x::EventMask::SUBSTRUCTURE_REDIRECT)],
+            value_list: &[x::Cw::EventMask(x::EventMask::STRUCTURE_NOTIFY |
+                                           x::EventMask::SUBSTRUCTURE_NOTIFY | 
+                                           x::EventMask::SUBSTRUCTURE_REDIRECT | 
+                                           x::EventMask::KEY_PRESS |
+                                           x::EventMask::ENTER_WINDOW |
+                                           x::EventMask::LEAVE_WINDOW |
+                                           x::EventMask::POINTER_MOTION)],
         });
         this.conn.check_request(cookie).unwrap_or_else(|err| {
             error!("X error: {err}");
@@ -117,10 +123,22 @@ impl Xmanager {
         });
         this.check_request(cookie);
 
+        let cookie = this.conn.send_request(&xkb::GetMap {
+        });
+        let reply = this.conn.wait_for_reply(cookie).unwrap();
+
         this
     }
 
     pub fn map_window(&self, window: x::Window) {
+        let cookie = self.conn.send_request_checked(&x::ChangeWindowAttributes {
+            window,
+            value_list: &[x::Cw::EventMask(x::EventMask::STRUCTURE_NOTIFY |
+                                           x::EventMask::KEY_PRESS |
+                                           x::EventMask::ENTER_WINDOW |
+                                           x::EventMask::FOCUS_CHANGE)],
+        });
+        self.check_request(cookie);
         let cookie = self.conn.send_request_checked(&x::MapWindow {
             window,
         });

@@ -6,6 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+strum = "*"
+strum_macros = "*"
 log = "*"
 log4rs = "*"
-xcb = { version = "1.2.0", features = ["xinerama", "randr"] }
+xcb = { version = "1.2.0", features = ["randr", "xkb"] }
+config = { version = "0.13.3", features = ["toml"] }

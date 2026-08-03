@@ -6,22 +6,18 @@ use log::{info, error};
 use strum_macros::EnumString;
 use std::str::FromStr;
 
-#[derive(Debug, EnumString, PartialEq, Eq, Hash)]
-enum Actions {
-    quit,
-    focus,
-}
+use crate::monitor::Monitor;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-struct keymapArgs {
-    action: Actions,
-    args: Option<Vec<String>>,
+pub struct KeymapArgs {
+    pub key: String,
+    pub args: Option<Vec<String>>,
 }
 
 #[derive(Debug)]
 #[allow(unused)]
 pub struct Settings {
-    keymap: HashMap<String, keymapArgs>,
+    pub keymap: HashMap<String, KeymapArgs>,
 }
 
 impl Settings {
@@ -38,25 +34,23 @@ impl Settings {
         let mut settings = Settings {
             keymap: HashMap::new(),
         };
-        for (key, val) in keymap_table {
-            let action = Actions::from_str(&key).unwrap();
+        for (tablekey, val) in keymap_table {
             match val.kind {
-                ValueKind::String(str) => {
-                    settings.keymap.insert(str, keymapArgs{ action, args: Option::None, });
+                ValueKind::String(keystr) => {
+                    settings.keymap.insert(tablekey, KeymapArgs{ key: keystr, args: Option::None, });
                 }
                 ValueKind::Table(mut table) => {
-                    let str = table.remove("key").unwrap().into_string()?;
+                    let keystr = table.remove("key").unwrap().into_string()?;
                     let args = table.remove("args").unwrap().into_array()?.into_iter().map(|x|
                         x.into_string()
                     ).collect::<Result<Vec<_>, _>>()?;
-                    settings.keymap.insert(str, keymapArgs{ action, args: Option::Some(args), });
+                    settings.keymap.insert(tablekey, KeymapArgs{ key: keystr, args: Option::Some(args), });
 
                 }
                 _ => {}
                 
             }
         }
-
         Result::Ok(settings)
     }
 }

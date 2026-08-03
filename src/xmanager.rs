@@ -123,9 +123,9 @@ impl Xmanager {
         });
         this.check_request(cookie);
 
-        let cookie = this.conn.send_request(&xkb::GetMap {
-        });
-        let reply = this.conn.wait_for_reply(cookie).unwrap();
+        //let cookie = this.conn.send_request(&xkb::GetMap {
+        //});
+        //let reply = this.conn.wait_for_reply(cookie).unwrap();
 
         this
     }

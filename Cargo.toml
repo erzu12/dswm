@@ -11,4 +11,5 @@ strum_macros = "*"
 log = "*"
 log4rs = "*"
 xcb = { version = "1.2.0", features = ["randr", "xkb"] }
+xkbcommon = "0.5.0"
 config = { version = "0.13.3", features = ["toml"] }

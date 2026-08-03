@@ -2,6 +2,7 @@ pub mod xmanager;
 pub mod client;
 pub mod monitor;
 pub mod layout;
+pub mod keyinput;
 mod config;
 
 use std::process::{Command, self};
@@ -16,6 +17,7 @@ use xcb::{Xid};
 
 use crate::client::Client;
 use crate::config::Settings;
+use crate::keyinput::Keyinput;
 use crate::monitor::Monitor;
 use crate::xmanager::Xmanager;
 
@@ -59,18 +61,19 @@ impl NetAtoms {
 
 // Many xcb functions return a `xcb::Result` or compatible result.
 fn main() -> xcb::Result<()> {
-    log4rs::init_file("/media/ssd2/dev/dswm/logging_config.yaml", Default::default()).unwrap();
-    info!("starting dswm");
+    log4rs::init_file("/media/home/dev/dswm/logging_config.yaml", Default::default()).unwrap();
+    info!("starting dswm new");
 
     let settings = Settings::new().unwrap_or_else(|err| {
         error!("config parse error: {:?}", err);
         process::exit(1);
     });
-    println!("{:?}", settings);
+    println!("settings: {:?}", settings);
     
     
     let xmanager = Xmanager::init();
-    let mut monitors = Monitor::creat_monitors(&xmanager);
+    let mut keyinput = Keyinput::new();
+    let mut monitors = Monitor::creat_monitors(&xmanager, &mut keyinput, &settings);
 
     Command::new("alacritty").spawn();
     Command::new("/home/jonas/.config/dswm/autorun.sh").spawn().unwrap_or_else(|err| {
@@ -103,7 +106,9 @@ fn main() -> xcb::Result<()> {
                 info!("enter: {:?}", ev);
             }
             xcb::Event::X(x::Event::KeyPress(ev)) => {
-                info!("key: {:?}", ev);
+                //info!("key: {:?}", ev);
+                let monitor_index = Monitor::get_current_monitor_intex(&monitors);
+                keyinput.handle_keyiput(&mut monitors[monitor_index], ev);
             }
             xcb::Event::RandR(xcb::randr::Event::Notify(ev)) => match ev.u() {
                 randr::NotifyData::Cc(cc) => {

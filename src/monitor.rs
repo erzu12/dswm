@@ -2,6 +2,8 @@ use log::{debug, error, info, trace, warn};
 use xcb::{randr, x};
 use xcb::x::CURRENT_TIME;
 
+use crate::config::Settings;
+use crate::keyinput::Keyinput;
 use crate::{layout::Layout, xmanager::Xmanager, client::Client, WindowConfiguration};
 
 
@@ -11,11 +13,11 @@ pub struct Monitor {
     posY: i16,
     height: u16,
     width: u16,
-    layout: Layout,
+    pub layout: Layout,
 }
 
 impl Monitor {
-    pub fn creat_monitors(xmanager: &Xmanager) -> Vec<Monitor> {
+    pub fn creat_monitors(xmanager: &Xmanager, keyinput: &mut Keyinput, settings: &Settings) -> Vec<Monitor> {
         //let cookie = xmanager.conn.send_request(&xinerama::QueryScreens {});
         let cookie = xmanager.conn.send_request(&randr::GetScreenResources {
             window: xmanager.screen.root(),
@@ -31,14 +33,14 @@ impl Monitor {
                 config_timestamp: CURRENT_TIME,
             });
             let reply = xmanager.conn.wait_for_reply(cookie).unwrap();
-            info!("sceen geo: {}, {}, {}, {}", reply.x(), reply.y(), reply.width(), reply.height());
+            //info!("sceen geo: {}, {}, {}, {}", reply.x(), reply.y(), reply.width(), reply.height());
             monitors.push(Monitor {
                 crtc: *crtc,
                 posX: reply.x(),
                 posY: reply.y(),
                 width: reply.width(),
                 height: reply.height(),
-                layout: Layout::new(reply.width(), reply.height()),
+                layout: Layout::new(reply.width(), reply.height(), keyinput, settings),
             });
         }
 
@@ -54,6 +56,10 @@ impl Monitor {
                 monitor.width = crtc_change.width();
             }
         }
+    }
+
+    pub fn get_current_monitor_intex(monitors: &Vec<Monitor>) -> usize {
+        0
     }
 
     pub fn map_client(&mut self, xmanager: &Xmanager, client: Client) {
@@ -80,6 +86,9 @@ impl Monitor {
 
         self.reconfigure_clients(xmanager);
 
+    }
+
+    pub fn close_client() {
     }
 
     fn reconfigure_clients(&self, xmanager: &Xmanager) {

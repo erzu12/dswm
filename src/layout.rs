@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::client::Client;
+use crate::{client::Client, keyinput::Keyinput, config::{Settings, KeymapArgs}};
 
 
 
@@ -11,7 +11,8 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub fn new(width: u16, height: u16) -> Self {
+    pub fn new(width: u16, height: u16, keyinput: &mut Keyinput, settings: &Settings) -> Self {
+        Self::create_keymaps(keyinput, settings);
         Layout {
             width,
             height,
@@ -29,6 +30,14 @@ impl Layout {
         self.clients.remove(client_index);
 
         self.reorder_clients();
+    }
+
+    pub fn test_map(&mut self) {
+        info!("test_map called");
+    }
+
+    pub fn quit(&mut self) {
+        info!("quit called");
     }
 
     pub fn get_client_to_focus(&self) -> &Client {
@@ -53,6 +62,20 @@ impl Layout {
         else if client_count == 1 {
             self.clients.last_mut().unwrap().set_size(self.width, self.height);
             self.clients.last_mut().unwrap().set_pos(0, 0);
+        }
+    }
+
+    fn create_keymaps(keyinput: &mut Keyinput, settings: &Settings) {
+        Layout::add_keymap(keyinput, settings, "test", Layout::test_map);
+        Layout::add_keymap(keyinput, settings, "quit", Layout::quit);
+    }
+    
+    fn add_keymap(keyinput: &mut Keyinput, settings: &Settings, action: &str, func: fn(&mut Layout)) {
+        match settings.keymap.get(action) {
+            Some(key_map_args) => {
+                keyinput.add_action(key_map_args.key.clone(), func);
+            }
+            None => {}
         }
     }
 }

@@ -5,7 +5,7 @@ appenders:
       pattern: "{h({d(%Y-%m-%d %H:%M:%S)(utc)} - {l}: {m}{n})}"
   my_file_logger:
     kind: file
-    path: "/media/ssd2/dev/dswm/log/dswm.log"
+    path: "/media/home/dev/dswm/log/dswm.log"
     encoder:
       pattern: "{d(%Y-%m-%d %H:%M:%S)(utc)} - {h({l})}: {m}{n}"
 root:
